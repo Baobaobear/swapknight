@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Swap the Knights</title>
+    <style>
+      :root {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: #fdfdfd;
+        color: #111;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #e5e5e5;
+      }
+
+      main {
+        width: min(900px, 100%);
+      }
+
+      .puzzle {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        align-items: stretch;
+      }
+
+      .panel {
+        flex: 1 1 260px;
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      h1 {
+        font-weight: 400;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      p {
+        margin: 4px 0 20px;
+        color: #444;
+        text-align: center;
+      }
+
+      .board {
+        width: calc(100% - 16px);
+        margin: 0 auto 16px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        background: #cfcfcf;
+        padding: 8px;
+        border-radius: 12px;
+      }
+
+      .preview-panel .board {
+        width: 220px;
+        max-width: 100%;
+        margin: 0 auto 16px;
+      }
+
+      .play-panel .board {
+        width: calc(100% - 16px);
+        margin: 0 auto;
+      }
+
+      .cell {
+        position: relative;
+        padding-top: 100%;
+        border: 2px solid #111;
+        background: #e5e5e5;
+        cursor: pointer;
+        transition: transform 0.1s ease, background 0.1s ease;
+      }
+
+      .void {
+        border: none;
+        background: transparent;
+        cursor: default;
+        pointer-events: none;
+      }
+
+      .piece {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .knight-img {
+        width: 70%;
+        height: 70%;
+        object-fit: contain;
+        image-rendering: -webkit-optimize-contrast;
+      }
+
+      .selected {
+        box-shadow: 0 0 0 4px #4caf50 inset;
+      }
+
+      .message {
+        min-height: 28px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .preview-panel .board .cell {
+        cursor: default;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin: 12px 0;
+        font-weight: 600;
+      }
+
+      button.action {
+        border: none;
+        background: #111;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+
+      button.action:hover {
+        background: #333;
+      }
+
+      @media (min-width: 900px) and (orientation: landscape) {
+        .puzzle {
+          flex-direction: row;
+          align-items: flex-start;
+        }
+
+        .preview-panel,
+        .play-panel {
+          flex: 1 1 50%;
+        }
+
+        .preview-panel .board {
+          margin-left: 0;
+        }
+
+        .play-panel .board {
+          width: calc(100% - 16px);
+          margin: 0;
+        }
+      }
+
+      @media (orientation: portrait) {
+        body {
+          padding: 16px;
+        }
+
+        main {
+          width: 100%;
+        }
+
+        .panel {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Can you swap the Knights?</h1>
+      <p>点击棋子选择，再点击一个符合马走日的空格移动。完成黑白互换即可成功。</p>
+      <div class="puzzle">
+        <section class="panel preview-panel">
+          <h2>初始状态</h2>
+          <div class="board" id="previewBoard"></div>
+        </section>
+        <section class="panel play-panel">
+          <h2>现在轮到你</h2>
+          <div class="controls">
+            <span>步数：<span id="moveCount">0</span></span>
+            <button class="action" id="resetBtn">重置</button>
+          </div>
+          <div class="board" id="board"></div>
+          <div class="message" id="message"></div>
+        </section>
+      </div>
+    </main>
+    <script>
+      const layout = [".1..", ".00.", ".010", "2020"];
+      let board = layout.map((row) => row.split(""));
+
+      const whiteStart = [];
+      const blackStart = [];
+      const boardEl = document.getElementById("board");
+      const previewEl = document.getElementById("previewBoard");
+      const messageEl = document.getElementById("message");
+      const moveCountEl = document.getElementById("moveCount");
+      const resetBtn = document.getElementById("resetBtn");
+      let selected = null;
+      let moveCount = 0;
+
+      board.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell === "1") {
+            whiteStart.push(`${r},${c}`);
+          } else if (cell === "2") {
+            blackStart.push(`${r},${c}`);
+          }
+        });
+      });
+
+      const whiteGoal = [...blackStart].sort().join("|");
+      const blackGoal = [...whiteStart].sort().join("|");
+
+      function appendKnightImage(target, type) {
+        const img = document.createElement("img");
+        img.src = type === "1" ? "knight-white.png" : "knight-black.png";
+        img.alt = type === "1" ? "White knight" : "Black knight";
+        img.className = "knight-img";
+        target.appendChild(img);
+      }
+
+      function coordKey(r, c) {
+        return `${r},${c}`;
+      }
+
+      function createBoard() {
+        boardEl.innerHTML = "";
+        board.forEach((row, r) => {
+          row.forEach((cell, c) => {
+            const btn = document.createElement("button");
+            btn.className = cell === "." ? "void" : "cell";
+            if (cell !== ".") {
+              btn.addEventListener("click", () => handleClick(r, c));
+              const piece = document.createElement("div");
+              piece.className = "piece";
+              if (cell === "1" || cell === "2") {
+                appendKnightImage(piece, cell);
+              }
+              btn.appendChild(piece);
+            }
+            btn.dataset.row = r;
+            btn.dataset.col = c;
+            boardEl.appendChild(btn);
+          });
+        });
+      }
+
+      function updateBoard() {
+        board.forEach((row, r) => {
+          row.forEach((cell, c) => {
+            const index = r * 4 + c;
+            const btn = boardEl.children[index];
+            if (!btn || btn.classList.contains("void")) return;
+            btn.classList.remove("selected");
+            btn.innerHTML = "";
+            if (selected && selected.r === r && selected.c === c) {
+              btn.classList.add("selected");
+            }
+            if (cell === "1" || cell === "2") {
+              const piece = document.createElement("div");
+              piece.className = "piece";
+              appendKnightImage(piece, cell);
+              btn.appendChild(piece);
+            }
+          });
+        });
+      }
+
+      function createPreviewBoard() {
+        previewEl.innerHTML = "";
+        layout.forEach((row, r) => {
+          row.split("").forEach((cell, c) => {
+            const tile = document.createElement("div");
+            tile.className = cell === "." ? "void" : "cell";
+            if (cell === "1" || cell === "2") {
+              const piece = document.createElement("div");
+              piece.className = "piece";
+              appendKnightImage(piece, cell);
+              tile.appendChild(piece);
+            }
+            previewEl.appendChild(tile);
+          });
+        });
+      }
+
+      function handleClick(r, c) {
+        const cell = board[r][c];
+        if (cell === ".") return;
+        if (cell === "1" || cell === "2") {
+          if (selected && selected.r === r && selected.c === c) {
+            selected = null;
+          } else {
+            selected = { r, c };
+          }
+          updateBoard();
+          return;
+        }
+
+        if (cell === "0" && selected) {
+          if (!canMove(selected.r, selected.c, r, c)) {
+            return;
+          }
+          board[r][c] = board[selected.r][selected.c];
+          board[selected.r][selected.c] = "0";
+          selected = { r, c };
+          updateBoard();
+          moveCount += 1;
+          updateMoveCount();
+          checkWin();
+        }
+      }
+
+      function canMove(sr, sc, tr, tc) {
+        const dr = Math.abs(tr - sr);
+        const dc = Math.abs(tc - sc);
+        return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+      }
+
+      function checkWin() {
+        const whiteNow = [];
+        const blackNow = [];
+        board.forEach((row, r) => {
+          row.forEach((cell, c) => {
+            if (cell === "1") whiteNow.push(coordKey(r, c));
+            if (cell === "2") blackNow.push(coordKey(r, c));
+          });
+        });
+        const whiteMatch = whiteNow.sort().join("|") === whiteGoal;
+        const blackMatch = blackNow.sort().join("|") === blackGoal;
+        if (whiteMatch && blackMatch) {
+          messageEl.textContent = "成功！所有骑士都完成互换。";
+        }
+      }
+
+      function updateMoveCount() {
+        moveCountEl.textContent = moveCount;
+      }
+
+      function resetGame() {
+        board = layout.map((row) => row.split(""));
+        selected = null;
+        moveCount = 0;
+        updateMoveCount();
+        messageEl.textContent = "";
+        updateBoard();
+      }
+
+      createPreviewBoard();
+      createBoard();
+      updateBoard();
+      updateMoveCount();
+      messageEl.textContent = "";
+      resetBtn.addEventListener("click", resetGame);
+    </script>
+  </body>
+</html>
