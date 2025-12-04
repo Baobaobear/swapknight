@@ -1,0 +1,177 @@
+:root {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #fdfdfd;
+  color: #111;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #e5e5e5;
+}
+
+main {
+  width: min(900px, 100%);
+}
+
+.puzzle {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.panel {
+  flex: 1 1 260px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+  font-weight: 400;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+p {
+  margin: 4px 0 20px;
+  color: #444;
+  text-align: center;
+}
+
+.board {
+  --cols: 4;
+  width: calc(100% - 16px);
+  margin: 0 auto 16px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: 4px;
+  background: #cfcfcf;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.preview-panel .board {
+  width: 220px;
+  max-width: 100%;
+  margin: 0 auto 16px;
+}
+
+.play-panel .board {
+  width: calc(100% - 16px);
+  margin: 0 auto;
+}
+
+.cell {
+  position: relative;
+  padding-top: 100%;
+  border: 2px solid #111;
+  background: #e5e5e5;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.void {
+  border: none;
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+.piece {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.knight-img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.selected {
+  box-shadow: 0 0 0 4px #e53935 inset;
+}
+
+.target {
+  box-shadow: 0 0 0 3px #4caf50 inset;
+}
+
+.message {
+  min-height: 28px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.preview-panel .board .cell {
+  cursor: default;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  font-weight: 600;
+}
+
+button.action {
+  border: none;
+  background: #111;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+button.action:hover {
+  background: #333;
+}
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .puzzle {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .preview-panel,
+  .play-panel {
+    flex: 1 1 50%;
+  }
+
+  .preview-panel .board {
+    margin-left: 0;
+  }
+
+  .play-panel .board {
+    width: calc(100% - 16px);
+    margin: 0;
+  }
+}
+
+@media (orientation: portrait) {
+  body {
+    padding: 16px;
+  }
+
+  main {
+    width: 100%;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}
